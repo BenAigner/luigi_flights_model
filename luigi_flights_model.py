@@ -68,7 +68,16 @@ class Correlation_Analysis(luigi.Task):
     def output(self):
         pass
 
+class Train_Data(luigi.Task):
 
+    def requires(self):
+        pass
+
+    def run(self):
+        pass
+
+    def output(self):
+        pass
 
 
 if __name__ == '__main__':
