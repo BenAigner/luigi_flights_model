@@ -5,8 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3792345e-89ba-49bb-aa62-f9a576aaceec" name="Changes" comment="update">
-      <change beforePath="$PROJECT_DIR$/.idea/luigi_flights_model.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/luigi_flights_model.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/luigi_flights_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/luigi_flights_model.py" afterDir="false" />
     </list>
@@ -92,7 +90,7 @@
       <workItem from="1707315820406" duration="4361000" />
       <workItem from="1707413949047" duration="1913000" />
       <workItem from="1707818403473" duration="3872000" />
-      <workItem from="1708084651179" duration="15950000" />
+      <workItem from="1708084651179" duration="18887000" />
     </task>
     <task id="LOCAL-00001" summary="update">
       <option name="closed" value="true" />
@@ -110,7 +108,15 @@
       <option name="project" value="LOCAL" />
       <updated>1707415858157</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="update">
+      <option name="closed" value="true" />
+      <created>1708106073878</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1708106073878</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -121,7 +127,7 @@
     <option name="LAST_COMMIT_MESSAGE" value="update" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/luigi_flights_model_$luigi_flights_model.coverage" NAME="luigi_flights_model Coverage Results" MODIFIED="1708106019975" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/luigi_flights_model_$luigi_flights_model.coverage" NAME="luigi_flights_model Coverage Results" MODIFIED="1708110245419" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/luigi_flights_model$luigi_flights_model.coverage" NAME="luigi_flights_model Coverage Results" MODIFIED="1707319958510" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

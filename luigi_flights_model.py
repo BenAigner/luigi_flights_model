@@ -6,6 +6,7 @@ import sklearn
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, OrdinalEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 
 class Load_Data(luigi.Task):
@@ -137,14 +138,20 @@ class Train_Data(luigi.Task):
 
         x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
 
-        logistic_regression = LogisticRegression()
+
+        logistic_regression = LogisticRegression(max_iter=10000)
         logistic_regression.fit(x_train, y_train)
 
-        y_pred = logistic_regression.predict(x_test)
+        test_indices = x_test.index
+        actual_value = y_test.values
+        predicted_value = logistic_regression.predict(x_test)
 
-        label['PREDICTED'] = [y_pred]
+        label = pd.DataFrame({'ACTUAL': actual_value, 'PREDICTED': predicted_value})
 
         label.to_csv(self.output()["label"].path, index=False)
+
+        accuracy = accuracy_score(actual_value, predicted_value)
+        print("Accuracy:", accuracy*100, " %")
 
     def output(self):
         return{
