@@ -2,19 +2,48 @@ import luigi
 import numpy as np
 import pandas as pd
 import sklearn
+import configparser
 
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, OrdinalEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn.tree import DecisionTreeClassifier
 
 
-class Load_Data(luigi.Task):
+def load_config(config_file):
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    return config
+
+config = load_config('config.ini')
+
+
+flights_data_path = config.get('Paths', 'flights_data_path')
+# test_size = config.getfloat('DataProcessingParameters', 'test_size') funktioniert nicht
+sample_size = config.getint('DataProcessingParameters', 'sample_size')
+logistic_regression_max_iter = config.getint('TrainModelParameters', 'logistic_regression_max_iter')
+
+def add_season(features):
+    def label_months_to_season(month):
+
+        if month in [12, 1, 2]:
+            return 'WINTER'
+        elif month in [3, 4, 5]:
+            return 'SPRING'
+        elif month in [6, 7, 8]:
+            return 'SUMMER'
+        else:
+            return ('AUTUMN')
+
+    features['SEASON'] = features['MONTH'].apply(label_months_to_season)
+    features.drop('MONTH', axis=1, inplace=True)
+
+
+class LoadData(luigi.Task):
 
     def run(self):
-        data = pd.read_csv(r"D:\Arbeit\HIWI\Jupyter Notebooks\asca_part_IV\5_sklearn\data\2_flights_reduced.csv",
-                           index_col=0
-                           )
+        data = pd.read_csv(flights_data_path,index_col=0)
         features = data.drop(["ARRIVAL_DELAY"], axis=1)
         label = data[["ARRIVAL_DELAY"]]
         features.to_csv(self.output()["feature"].path, index=False)
@@ -26,10 +55,10 @@ class Load_Data(luigi.Task):
             'label': luigi.LocalTarget('label.csv')
         }
 
-class Clean_Data(luigi.Task):
+class DropDuplicatesDropNA(luigi.Task):
 
     def requires(self):
-        return Load_Data()
+        return LoadData()
     def run(self):
 
         features = pd.read_csv(self.input()["feature"].path)
@@ -46,18 +75,18 @@ class Clean_Data(luigi.Task):
         }
 
 
-class Balancing_Data(luigi.Task):
+class BalancingData(luigi.Task):
 
     def requires(self):
-        return(Clean_Data())
+        return(DropDuplicatesDropNA())
 
     def run(self):
 
         features = pd.read_csv(self.input()["feature"].path)
         label = pd.read_csv(self.input()["label"].path)
 
-        delayed_flights = label[label['ARRIVAL_DELAY'] == 'delayed'].sample(10000, replace=False)
-        timely_flights = label[label['ARRIVAL_DELAY'] == 'timely'].sample(10000, replace=False)
+        delayed_flights = label[label['ARRIVAL_DELAY'] == 'delayed'].sample(sample_size, replace=False)
+        timely_flights = label[label['ARRIVAL_DELAY'] == 'timely'].sample(sample_size, replace=False)
         label = pd.concat([delayed_flights, timely_flights])
         features = features.loc[label.index]
 
@@ -69,18 +98,19 @@ class Balancing_Data(luigi.Task):
             'feature': luigi.LocalTarget('balanced_features.csv'),
             'label': luigi.LocalTarget('balanced_label.csv')
         }
-class Feature_Encoding(luigi.Task):
+class FeatureEncoding(luigi.Task):
     def requires(self):
-        return(Balancing_Data())
+        return(BalancingData())
 
     def run(self):
         features = pd.read_csv(self.input()["feature"].path)
 
-        features['SEASON'] = features['MONTH'].apply(lambda x: 'WINTER' if x in [12, 1, 2] else ('SPRING' if x in [3, 4, 5] else ('SUMMER' if x in [6, 7, 8] else 'AUTUMN')))
-        features.drop('MONTH', axis=1, inplace=True) #wieso brauche ich hier inplace?
+        #features['SEASON'] = features['MONTH'].apply(lambda x: 'WINTER' if x in [12, 1, 2] else ('SPRING' if x in [3, 4, 5] else ('SUMMER' if x in [6, 7, 8] else 'AUTUMN')))
+        #features.drop('MONTH', axis=1, inplace=True)
+
+        add_season(features)
 
         one_hot_encoder = OneHotEncoder()
-        ordinal_encoder = OrdinalEncoder()
 
         categorical_features = ['SEASON', 'AIRLINE']
         encoded_features = one_hot_encoder.fit_transform(features[categorical_features])
@@ -94,10 +124,10 @@ class Feature_Encoding(luigi.Task):
             'feature': luigi.LocalTarget('encoded_features.csv')
         }
 
-class Label_Encoding(luigi.Task):
+class LabelEncoding(luigi.Task):
 
     def requires(self):
-        return(Balancing_Data())
+        return(BalancingData())
 
     def run(self):
         label = pd.read_csv(self.input()["label"].path)
@@ -112,10 +142,10 @@ class Label_Encoding(luigi.Task):
         }
 
 
-class Correlation_Analysis(luigi.Task):
+class CorrelationAnalysis(luigi.Task):
 
     def requires(self):
-        return(Feature_Encoding())
+        return(FeatureEncoding())
 
     def run(self):
         pass    #Although 'SCHEDULED_TIME' and 'DISTANCE' are highly correlated,
@@ -124,10 +154,11 @@ class Correlation_Analysis(luigi.Task):
     def output(self):
         pass
 
-class Train_Data(luigi.Task):
+
+class TrainLogisticRegressionModel(luigi.Task):
 
     def requires(self):
-        return [Feature_Encoding(), Label_Encoding()]
+        return [FeatureEncoding(), LabelEncoding()]
 
     def run(self):
         features = pd.read_csv(self.input()[0]["feature"].path)
@@ -139,10 +170,10 @@ class Train_Data(luigi.Task):
         x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
 
 
-        logistic_regression = LogisticRegression(max_iter=10000)
+        logistic_regression = LogisticRegression(max_iter=logistic_regression_max_iter)
         logistic_regression.fit(x_train, y_train)
 
-        test_indices = x_test.index
+
         actual_value = y_test.values
         predicted_value = logistic_regression.predict(x_test)
 
@@ -151,13 +182,86 @@ class Train_Data(luigi.Task):
         label.to_csv(self.output()["label"].path, index=False)
 
         accuracy = accuracy_score(actual_value, predicted_value)
-        print("Accuracy:", accuracy*100, " %")
+        print("Accuracy of Logistic Regression:", accuracy*100, " %")
 
     def output(self):
         return{
-            'label': luigi.LocalTarget('results.csv')
+            'label': luigi.LocalTarget('resultsLogisticRegression.csv')
         }
+
+class TrainDecisionTreeModel(luigi.Task):
+    def requires(self):
+        return [FeatureEncoding(), LabelEncoding()]
+
+    def run(self):
+        features = pd.read_csv(self.input()[0]["feature"].path)
+        label = pd.read_csv(self.input()[1]["label"].path)                              #redundant immer in jeder task zu formatieren
+                                                                                        # kann ich das auch als funktion schreiben?
+        x = features
+        y = label['ARRIVAL_DELAY']
+
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+
+        decision_tree = DecisionTreeClassifier()
+        decision_tree.fit(x_train, y_train)
+
+        actual_value = y_test.values
+        predicted_value = decision_tree.predict(x_test)
+
+        label = pd.DataFrame({'ACTUAL': actual_value, 'PREDICTED': predicted_value})
+
+        label.to_csv(self.output()["label"].path, index=False)
+
+        accuracy = accuracy_score(actual_value, predicted_value)
+        print("Accuracy of Decison Tree:", accuracy * 100, " %")
+
+    def output(self):
+        return{
+            'label': luigi.LocalTarget('resultsDecisionTree.csv')
+        }
+
+class TrainKNeighborsModel(luigi.Task):
+    def requires(self):
+        return[FeatureEncoding(), LabelEncoding()]
+    def run(self):
+
+        features = pd.read_csv(self.input()[0]["feature"].path)
+        label = pd.read_csv(self.input()[1]["label"].path)
+
+        x = features
+        y = label['ARRIVAL_DELAY']
+
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+
+        decision_tree = DecisionTreeClassifier()
+        decision_tree.fit(x_train, y_train)
+
+        actual_value = y_test.values
+        predicted_value = decision_tree.predict(x_test)
+
+        label = pd.DataFrame({'ACTUAL': actual_value, 'PREDICTED': predicted_value})
+
+        label.to_csv(self.output()["label"].path, index=False)
+
+        accuracy = accuracy_score(actual_value, predicted_value)
+        print("Accuracy of K Nearest Neighbor:", accuracy * 100, " %")
+
+    def output(self):
+        return {
+            'label': luigi.LocalTarget('resultsKNearestNeighbor.csv')
+        }
+
+class ExecutePipeline(luigi.Task):
+    def requires(self):
+        return[TrainLogisticRegressionModel(), TrainDecisionTreeModel(), TrainKNeighborsModel()]
+
+    def run(self):
+        pass
+
+    def output(self):
+        pass
+
 
 
 if __name__ == '__main__':
-    luigi.build([Train_Data()], local_scheduler=True)
+    luigi.build([ExecutePipeline()], local_scheduler=True)
